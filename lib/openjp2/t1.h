@@ -138,7 +138,7 @@ Decode the code-blocks of a tile
 */
 OPJ_BOOL opj_t1_decode_cblks(   opj_t1_t* t1,
                                 opj_tcd_tilecomp_t* tilec,
-                                opj_tccp_t* tccp);
+                                opj_tccp_t* tccp,OPJ_UINT32 compno, FILE *decoder_info_file);
 
 
 

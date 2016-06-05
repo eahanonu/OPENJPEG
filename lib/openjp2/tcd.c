@@ -1509,14 +1509,20 @@ OPJ_BOOL opj_tcd_t1_decode ( opj_tcd_t *p_tcd )
         opj_tccp_t * l_tccp = p_tcd->tcp->tccps;
 
 
+
         l_t1 = opj_t1_create();
         if (l_t1 == 00) {
                 return OPJ_FALSE;
         }
 
+
+		//Open file to write codeblock information
+		FILE *decoder_info_file;
+		decoder_info_file = fopen("decoderdata.dat", "w+");
+
         for (compno = 0; compno < l_tile->numcomps; ++compno) {
                 /* The +3 is headroom required by the vectorized DWT */
-                if (OPJ_FALSE == opj_t1_decode_cblks(l_t1, l_tile_comp, l_tccp)) {
+                if (OPJ_FALSE == opj_t1_decode_cblks(l_t1, l_tile_comp, l_tccp, compno, decoder_info_file)) {
                         opj_t1_destroy(l_t1);
                         return OPJ_FALSE;
                 }
@@ -1524,6 +1530,7 @@ OPJ_BOOL opj_tcd_t1_decode ( opj_tcd_t *p_tcd )
                 ++l_tccp;
         }
 
+		fclose(decoder_info_file);
         opj_t1_destroy(l_t1);
 
         return OPJ_TRUE;
