@@ -1,4 +1,3 @@
-//testing
 /*
  * The copyright in this software is being made available under the 2-clauses 
  * BSD License, included below. This software may be subject to other third 
