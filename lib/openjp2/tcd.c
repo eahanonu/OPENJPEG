@@ -1518,7 +1518,7 @@ OPJ_BOOL opj_tcd_t1_decode ( opj_tcd_t *p_tcd )
 
 		//Open file to write codeblock information
 		FILE *decoder_info_file;
-		decoder_info_file = fopen("decoderdata.dat", "w+");
+		decoder_info_file = fopen("decoderdata.dat", "w");
 
         for (compno = 0; compno < l_tile->numcomps; ++compno) {
                 /* The +3 is headroom required by the vectorized DWT */

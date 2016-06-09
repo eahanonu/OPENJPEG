@@ -1360,10 +1360,11 @@ OPJ_BOOL opj_t1_decode_cblks(opj_t1_t* t1,
 					fprintf(decoder_info_file, "%d %d\n", x, y);
 					fprintf(decoder_info_file, "%d %d\n", cblk->x0, cblk->y0);
 					fprintf(decoder_info_file, "%d %d\n", cblk_w, cblk_h);
-					fprintf(decoder_info_file, "%d\n", (OPJ_INT32)(cblk->segs->real_num_passes + 2) / 3);
-
-
-
+					int decodedplanes = (cblk->segs->real_num_passes + 2) / 3;  //Number of bitplanes fully decoded
+					fprintf(decoder_info_file, "%d\n", decodedplanes);
+					float cblkstep = 0.0;
+					cblkstep = band->stepsize * pow(2.0, (double) cblk->numbps - decodedplanes);
+					fprintf(decoder_info_file, "%f\n", cblkstep);  //code block stepsize
 
 
 					/*tiledp=(void*)&tilec->data[(y * tile_w) + x];*/
@@ -1533,7 +1534,7 @@ OPJ_BOOL opj_t1_encode_cblks(opj_t1_t *t1,
 
 	//Open file to write codeblock information
 	FILE *encoder_info_file;
-	encoder_info_file = fopen("encoderdata.dat", "w+");
+	encoder_info_file = fopen("encoderdata.dat", "w");
 
 	tile->distotile = 0;		/* fixed_quality */
 
@@ -1624,26 +1625,6 @@ OPJ_BOOL opj_t1_encode_cblks(opj_t1_t *t1,
 						fprintf(encoder_info_file, "%d %d\n", cblk->x0, cblk->y0);
 						fprintf(encoder_info_file, "%d %d\n", cblk_w, cblk_h);
 						//fprintf(encoder_info_file, "%d\n", (int)(cblk->segs->real_num_passes + 2) / 3);
-						fprintf(encoder_info_file, "0\n");
-						
-
-						//Calculate codeblock variance
-						datap = t1->data;  //point datap back to beginning of the data
-						OPJ_FLOAT32 varsum = 0.0;
-						OPJ_FLOAT32 coeffmean = (OPJ_FLOAT32)coeffsum / (cblk_h*cblk_w);  //codeblock mean
-						for (j = 0; j < cblk_h; ++j)
-						{
-							for (i = 0; i < cblk_w; ++i)
-							{
-								//tmp = (OPJ_FLOAT32)*datap * band->stepsize - coeffmean;
-								tmp2 = (OPJ_FLOAT32) datap[(j * cblk_w) + i] * (band->stepsize / 2.0);
-								tmp2 = (OPJ_FLOAT32) tmp2 / (pow(2, 5));  //coefficient as seen at decoder
-								tmp2 = tmp2 - coeffmean;
-								varsum = varsum + tmp2 * tmp2;
-							}
-						}
-						fprintf(encoder_info_file, "%f\n\n", (OPJ_FLOAT32)varsum / (cblk_h*cblk_w - 1));
-
 
 						opj_t1_encode_cblk(
 							t1,
@@ -1658,6 +1639,25 @@ OPJ_BOOL opj_t1_encode_cblks(opj_t1_t *t1,
 							tile,
 							mct_norms);
 
+						fprintf(encoder_info_file, "%d\n", cblk->numbps);
+						//fprintf(encoder_info_file, "0\n");
+						fprintf(encoder_info_file, "%f\n", (float)band->stepsize / 2.0);
+						//Calculate codeblock variance
+						datap = t1->data;  //point datap back to beginning of the data
+						OPJ_FLOAT32 varsum = 0.0;
+						OPJ_FLOAT32 coeffmean = (OPJ_FLOAT32)coeffsum / (cblk_h*cblk_w);  //codeblock mean
+						for (j = 0; j < cblk_h; ++j)
+						{
+							for (i = 0; i < cblk_w; ++i)
+							{
+								//tmp = (OPJ_FLOAT32)*datap * band->stepsize - coeffmean;
+								tmp2 = (OPJ_FLOAT32)datap[(j * cblk_w) + i] * (band->stepsize / 2.0);
+								tmp2 = (OPJ_FLOAT32)tmp2 / (pow(2, 5));  //coefficient as seen at decoder
+								tmp2 = tmp2 - coeffmean;
+								varsum = varsum + tmp2 * tmp2;
+							}
+						}
+						fprintf(encoder_info_file, "%f\n\n", (OPJ_FLOAT32)varsum / (cblk_h*cblk_w - 1));
 
 					} /* cblkno */
 				} /* precno */
