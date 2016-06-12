@@ -38,7 +38,8 @@
 
 #include "opj_includes.h"
 #include "t1_luts.h"
-#define wavelet_out 1
+#define WAVELET_OUTPUT 1  //wether or not to output the wavelet coefficients in the output .dat files, Eze - 06.11.2016
+#define DATA_OUTPUT 1 //determines if we make an output file with codeblock data, Eze - 06.12.2016
 /** @defgroup T1 T1 - Implementation of the tier-1 coding */
 /*@{*/
 
@@ -1356,16 +1357,18 @@ OPJ_BOOL opj_t1_decode_cblks(opj_t1_t* t1,
 					//-width and height (size) of codeblock
 					//-number of decoded bitplanes
 					//-codeblock variance
-					fprintf(decoder_info_file, "%d %d %d\n", compno, resno, bandno);
-					fprintf(decoder_info_file, "%d %d\n", x, y);
-					fprintf(decoder_info_file, "%d %d\n", cblk->x0, cblk->y0);
-					fprintf(decoder_info_file, "%d %d\n", cblk_w, cblk_h);
-					int decodedplanes = (cblk->segs->real_num_passes + 2) / 3;  //Number of bitplanes fully decoded
-					fprintf(decoder_info_file, "%d\n", decodedplanes);
-					float cblkstep = 0.0;
-					cblkstep = band->stepsize * pow(2.0, (double) cblk->numbps - decodedplanes);
-					fprintf(decoder_info_file, "%f\n", cblkstep);  //code block stepsize
-
+					if (DATA_OUTPUT)
+					{
+						fprintf(decoder_info_file, "%d %d %d\n", compno, resno, bandno);
+						fprintf(decoder_info_file, "%d %d\n", x, y);
+						fprintf(decoder_info_file, "%d %d\n", cblk->x0, cblk->y0);
+						fprintf(decoder_info_file, "%d %d\n", cblk_w, cblk_h);
+						int decodedplanes = (cblk->segs->real_num_passes + 2) / 3;  //Number of bitplanes fully decoded
+						fprintf(decoder_info_file, "%d\n", decodedplanes);
+						float cblkstep = 0.0;
+						cblkstep = band->stepsize * pow(2.0, (double)cblk->numbps - decodedplanes);
+						fprintf(decoder_info_file, "%f\n", cblkstep);  //code block stepsize
+					}
 
 					/*tiledp=(void*)&tilec->data[(y * tile_w) + x];*/
 					if (tccp->qmfbid == 1) {
@@ -1407,7 +1410,7 @@ OPJ_BOOL opj_t1_decode_cblks(opj_t1_t* t1,
 								tmp = (OPJ_FLOAT32) *datap * band->stepsize;
 								//tmp = (OPJ_FLOAT32)*datap * band->stepsize - coeffmean;
 								//This is if you want to print out the wavelet coefficients
-								if (wavelet_out)
+								if (DATA_OUTPUT && WAVELET_OUTPUT)
 								{
 									fprintf(decoder_info_file, "C%f\n", tmp);
 								}
@@ -1427,7 +1430,6 @@ OPJ_BOOL opj_t1_decode_cblks(opj_t1_t* t1,
 		} /* bandno */
 	} /* resno */
 
-	//fclose(decoder_info_file);  //Close code block data file
 	return OPJ_TRUE;
 }
 
@@ -1535,13 +1537,13 @@ OPJ_BOOL opj_t1_encode_cblks(opj_t1_t *t1,
 	opj_tcd_tile_t *tile,
 	opj_tcp_t *tcp,
 	const OPJ_FLOAT64 * mct_norms
-)
+	)
 {
 	OPJ_UINT32 compno, resno, bandno, precno, cblkno;
 
 	//Open file to write codeblock information
 	FILE *encoder_info_file;
-	encoder_info_file = fopen("encoderdata.dat", "w");
+	if (DATA_OUTPUT){encoder_info_file = fopen("encoderdata.dat", "w");}
 
 	tile->distotile = 0;		/* fixed_quality */
 
@@ -1618,20 +1620,7 @@ OPJ_BOOL opj_t1_encode_cblks(opj_t1_t *t1,
 						}
 						
 
-						////    Eze codeblock information output,  06.04.2016    ////
-						//Want to output the following codeblock information here:
-						//-resolution
-						//-band
-						//-(x,y) location in band
-						//-(x,y) location in image
-						//-width and height (size) of codeblock
-						//-number of decoded bitplanes
-						//-codeblock variance
-						fprintf(encoder_info_file, "%d %d %d\n", compno, resno, bandno);
-						fprintf(encoder_info_file, "%d %d\n", x, y);
-						fprintf(encoder_info_file, "%d %d\n", cblk->x0, cblk->y0);
-						fprintf(encoder_info_file, "%d %d\n", cblk_w, cblk_h);
-						//fprintf(encoder_info_file, "%d\n", (int)(cblk->segs->real_num_passes + 2) / 3);
+
 
 						opj_t1_encode_cblk(
 							t1,
@@ -1646,37 +1635,57 @@ OPJ_BOOL opj_t1_encode_cblks(opj_t1_t *t1,
 							tile,
 							mct_norms);
 
-						fprintf(encoder_info_file, "%d\n", cblk->numbps);
-						fprintf(encoder_info_file, "%f\n", (float) band->stepsize / 2.0);
-						//Calculate codeblock variance
-						datap = t1->data;  //point datap back to beginning of the data
-						OPJ_FLOAT32 varsum = 0.0;
-						OPJ_FLOAT32 coeffmean = (OPJ_FLOAT32)coeffsum / (cblk_h*cblk_w);  //codeblock mean
-						for (j = 0; j < cblk_h; ++j)
+
+						////    Eze codeblock information output,  06.04.2016    ////
+						//Want to output the following codeblock information here:
+						//-resolution
+						//-band
+						//-(x,y) location in band
+						//-(x,y) location in image
+						//-width and height (size) of codeblock
+						//-number of decoded bitplanes
+						//-codeblock variance
+						if (DATA_OUTPUT)
 						{
-							for (i = 0; i < cblk_w; ++i)
+							fprintf(encoder_info_file, "%d %d %d\n", compno, resno, bandno);
+							fprintf(encoder_info_file, "%d %d\n", x, y);
+							fprintf(encoder_info_file, "%d %d\n", cblk->x0, cblk->y0);
+							fprintf(encoder_info_file, "%d %d\n", cblk_w, cblk_h);
+							//fprintf(encoder_info_file, "%d\n", (int)(cblk->segs->real_num_passes + 2) / 3);
+							fprintf(encoder_info_file, "%d\n", cblk->numbps);
+							fprintf(encoder_info_file, "%f\n", (float)band->stepsize / 2.0);
+							//Calculate codeblock variance
+							datap = t1->data;  //point datap back to beginning of the data
+							OPJ_FLOAT32 varsum = 0.0;
+							OPJ_FLOAT32 coeffmean = (OPJ_FLOAT32)coeffsum / (cblk_h*cblk_w);  //codeblock mean
+							for (j = 0; j < cblk_h; ++j)
 							{
-								//tmp = (OPJ_FLOAT32)*datap * band->stepsize - coeffmean;
-								tmp2 = (OPJ_FLOAT32)datap[(j * cblk_w) + i] * (band->stepsize / 2.0);
-								tmp2 = (OPJ_FLOAT32)tmp2 / (pow(2, 5));  //coefficient as seen at decoder
-
-								//This is if you want to print out the wavelet coefficients
-								if (wavelet_out)
+								for (i = 0; i < cblk_w; ++i)
 								{
-									fprintf(encoder_info_file, "C%f\n", tmp2);
-								}
+									//tmp = (OPJ_FLOAT32)*datap * band->stepsize - coeffmean;
+									tmp2 = (OPJ_FLOAT32)datap[(j * cblk_w) + i] * (band->stepsize / 2.0);
+									tmp2 = (OPJ_FLOAT32)tmp2 / (pow(2, 5));  //coefficient as seen at decoder
 
-								tmp2 = tmp2 - coeffmean;
-								varsum = varsum + tmp2 * tmp2;
+									//This is if you want to print out the wavelet coefficients
+									if (DATA_OUTPUT && WAVELET_OUTPUT)
+									{
+										fprintf(encoder_info_file, "C%f\n", tmp2);
+									}
+
+									tmp2 = tmp2 - coeffmean;
+									varsum = varsum + tmp2 * tmp2;
+								}
 							}
+							fprintf(encoder_info_file, "%f\n\n", (OPJ_FLOAT32)varsum / (cblk_h*cblk_w - 1));
 						}
-						fprintf(encoder_info_file, "%f\n\n", (OPJ_FLOAT32)varsum / (cblk_h*cblk_w - 1));
 
 					} /* cblkno */
 				} /* precno */
 			} /* bandno */
 		} /* resno  */
 	} /* compno  */
+
+	if (DATA_OUTPUT) {fclose(encoder_info_file);}
 	return OPJ_TRUE;
 }
 
