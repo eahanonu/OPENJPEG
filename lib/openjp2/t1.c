@@ -38,7 +38,7 @@
 
 #include "opj_includes.h"
 #include "t1_luts.h"
-
+#define wavelet_out 1
 /** @defgroup T1 T1 - Implementation of the tier-1 coding */
 /*@{*/
 
@@ -1404,7 +1404,14 @@ OPJ_BOOL opj_t1_decode_cblks(opj_t1_t* t1,
 						{
 							for (i = 0; i < cblk_w; ++i)
 							{
-								tmp = (OPJ_FLOAT32)*datap * band->stepsize - coeffmean;
+								tmp = (OPJ_FLOAT32) *datap * band->stepsize;
+								//tmp = (OPJ_FLOAT32)*datap * band->stepsize - coeffmean;
+								//This is if you want to print out the wavelet coefficients
+								if (wavelet_out)
+								{
+									fprintf(decoder_info_file, "C%f\n", tmp);
+								}
+								tmp = tmp - coeffmean;
 								varsum = varsum + tmp * tmp;
 								datap++;
 							}
@@ -1640,8 +1647,7 @@ OPJ_BOOL opj_t1_encode_cblks(opj_t1_t *t1,
 							mct_norms);
 
 						fprintf(encoder_info_file, "%d\n", cblk->numbps);
-						//fprintf(encoder_info_file, "0\n");
-						fprintf(encoder_info_file, "%f\n", (float)band->stepsize / 2.0);
+						fprintf(encoder_info_file, "%f\n", (float) band->stepsize / 2.0);
 						//Calculate codeblock variance
 						datap = t1->data;  //point datap back to beginning of the data
 						OPJ_FLOAT32 varsum = 0.0;
@@ -1653,6 +1659,13 @@ OPJ_BOOL opj_t1_encode_cblks(opj_t1_t *t1,
 								//tmp = (OPJ_FLOAT32)*datap * band->stepsize - coeffmean;
 								tmp2 = (OPJ_FLOAT32)datap[(j * cblk_w) + i] * (band->stepsize / 2.0);
 								tmp2 = (OPJ_FLOAT32)tmp2 / (pow(2, 5));  //coefficient as seen at decoder
+
+								//This is if you want to print out the wavelet coefficients
+								if (wavelet_out)
+								{
+									fprintf(encoder_info_file, "C%f\n", tmp2);
+								}
+
 								tmp2 = tmp2 - coeffmean;
 								varsum = varsum + tmp2 * tmp2;
 							}
