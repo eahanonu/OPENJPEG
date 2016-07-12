@@ -1157,11 +1157,18 @@ OPJ_BOOL opj_tcd_encode_tile(   opj_tcd_t *p_tcd,
                 }
                 /* FIXME  _ProfStop(PGROUP_DWT); */
 
+
                 /* FIXME  _ProfStart(PGROUP_T1); */
                 if (! opj_tcd_t1_encode(p_tcd)) {
                         return OPJ_FALSE;
                 }
                 /* FIXME _ProfStop(PGROUP_T1); */
+
+				//Take a look at coeffs at this point
+				opj_tcd_tilecomp_t *comp0 = p_tcd->tcd_image->tiles->comps;
+				opj_tcd_tilecomp_t *comp1 = comp0 + 1;
+				opj_tcd_tilecomp_t *comp2 = comp1 + 1;
+
 
                 /* FIXME _ProfStart(PGROUP_RATE); */
                 if (! opj_tcd_rate_allocate_encode(p_tcd,p_dest,p_max_length,p_cstr_info)) {
@@ -1924,7 +1931,6 @@ OPJ_BOOL opj_tcd_dwt_encode ( opj_tcd_t *p_tcd )
         opj_tcd_tilecomp_t * l_tile_comp = p_tcd->tcd_image->tiles->comps;
         opj_tccp_t * l_tccp = p_tcd->tcp->tccps;
         OPJ_UINT32 compno;
-		int first = 1;
 
 		//Want to output coefficients
 		FILE *dwtoutput;

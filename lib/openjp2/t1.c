@@ -1596,6 +1596,8 @@ OPJ_BOOL opj_t1_encode_cblks(opj_t1_t *t1,
 						OPJ_FLOAT32 tmp2 = 0.0;  //Testing to see if we can get floating coefficient here, Eze - 06.05.2016
 						OPJ_FLOAT32 coeffsum = 0.0;
 						tiledp = &tilec->data[(OPJ_UINT32)y * tile_w + (OPJ_UINT32)x];
+
+
 						if (tccp->qmfbid == 1) {
 							for (j = 0; j < cblk_h; ++j) {
 								for (i = 0; i < cblk_w; ++i) {
@@ -1616,6 +1618,7 @@ OPJ_BOOL opj_t1_encode_cblks(opj_t1_t *t1,
 									tmp2 = (OPJ_FLOAT32) datap[(j * cblk_w) + i] * (band->stepsize / 2.0);
 									//tmp2 = (OPJ_FLOAT32)datap[(j * cblk_w) + i];
 									tmp2 = (OPJ_FLOAT32) tmp2 / (pow(2, 5));  //coefficient as seen at decoder
+
 									coeffsum = coeffsum + tmp2;
 								}
 							}
@@ -1660,16 +1663,15 @@ OPJ_BOOL opj_t1_encode_cblks(opj_t1_t *t1,
 							datap = t1->data;  //point datap back to beginning of the data
 							OPJ_FLOAT32 varsum = 0.0;
 							OPJ_FLOAT32 coeffmean = (OPJ_FLOAT32)coeffsum / (cblk_h*cblk_w);  //codeblock mean
+
+							//int *tmp3 = tiledp;
 							for (j = 0; j < cblk_h; ++j)
 							{
 								for (i = 0; i < cblk_w; ++i)
 								{
-									//tmp = (OPJ_FLOAT32)*datap * band->stepsize - coeffmean;
-									tmp2 = (OPJ_FLOAT32)datap[(j * cblk_w) + i] * (band->stepsize / 2.0);
-									//tmp2 = (OPJ_FLOAT32) datap[(j * cblk_w) + i];
+									tmp2 = (OPJ_FLOAT32)tiledp[(j * tile_w) + i] * (band->stepsize / 2.0);
 									tmp2 = (OPJ_FLOAT32)tmp2 / (pow(2, 5));  //coefficient as seen at decoder
 
-									//OPJ_INT32 tmp2 = tiledp[(j * tile_w) + i];
 									//This is if you want to print out the wavelet coefficients
 									if (DATA_OUTPUT && WAVELET_OUTPUT)
 									{
