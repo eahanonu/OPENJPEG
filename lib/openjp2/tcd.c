@@ -1924,6 +1924,7 @@ OPJ_BOOL opj_tcd_dwt_encode ( opj_tcd_t *p_tcd )
         opj_tcd_tilecomp_t * l_tile_comp = p_tcd->tcd_image->tiles->comps;
         opj_tccp_t * l_tccp = p_tcd->tcp->tccps;
         OPJ_UINT32 compno;
+		int first = 1;
 
         for (compno = 0; compno < l_tile->numcomps; ++compno) {
                 if (l_tccp->qmfbid == 1) {
@@ -1937,6 +1938,21 @@ OPJ_BOOL opj_tcd_dwt_encode ( opj_tcd_t *p_tcd )
                         }
                 }
 
+				if (first)
+				{
+					first = 0;
+					FILE *LLcoeffs;
+					LLcoeffs = fopen("LLcoeffs.dat", "w");
+					int *tmp;
+					tmp = l_tile_comp->data;
+
+					for (int n = 0; n < 256; n++)
+					{
+						fprintf(LLcoeffs, "%d\n", *tmp);
+						++tmp;
+					}
+					fclose(LLcoeffs);
+				}
                 ++l_tile_comp;
                 ++l_tccp;
         }

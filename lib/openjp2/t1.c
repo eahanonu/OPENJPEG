@@ -1613,6 +1613,7 @@ OPJ_BOOL opj_t1_encode_cblks(opj_t1_t *t1,
 											bandconst) >> (11 - T1_NMSEDEC_FRACBITS);
 
 									tmp2 = (OPJ_FLOAT32) datap[(j * cblk_w) + i] * (band->stepsize / 2.0);
+									//tmp2 = (OPJ_FLOAT32)datap[(j * cblk_w) + i];
 									tmp2 = (OPJ_FLOAT32) tmp2 / (pow(2, 5));  //coefficient as seen at decoder
 									coeffsum = coeffsum + tmp2;
 								}
@@ -1664,8 +1665,10 @@ OPJ_BOOL opj_t1_encode_cblks(opj_t1_t *t1,
 								{
 									//tmp = (OPJ_FLOAT32)*datap * band->stepsize - coeffmean;
 									tmp2 = (OPJ_FLOAT32)datap[(j * cblk_w) + i] * (band->stepsize / 2.0);
+									//tmp2 = (OPJ_FLOAT32) datap[(j * cblk_w) + i];
 									tmp2 = (OPJ_FLOAT32)tmp2 / (pow(2, 5));  //coefficient as seen at decoder
 
+									//OPJ_INT32 tmp2 = tiledp[(j * tile_w) + i];
 									//This is if you want to print out the wavelet coefficients
 									if (DATA_OUTPUT && WAVELET_OUTPUT)
 									{
