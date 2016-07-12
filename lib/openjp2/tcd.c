@@ -1925,7 +1925,12 @@ OPJ_BOOL opj_tcd_dwt_encode ( opj_tcd_t *p_tcd )
         opj_tccp_t * l_tccp = p_tcd->tcp->tccps;
         OPJ_UINT32 compno;
 
-        for (compno = 0; compno < l_tile->numcomps; ++compno) {
+		//Want to output coefficients
+		FILE *dwtoutput;
+		dwtoutput = fopen("dwtoutput", "w");
+
+        for (compno = 0; compno < l_tile->numcomps; ++compno) 
+		{
                 if (l_tccp->qmfbid == 1) {
                         if (! opj_dwt_encode(l_tile_comp)) {
                                 return OPJ_FALSE;
@@ -1937,10 +1942,22 @@ OPJ_BOOL opj_tcd_dwt_encode ( opj_tcd_t *p_tcd )
                         }
                 }
 
+
+
+
+				int *dataptr = l_tile_comp->data;
+				for (int cout = 0; cout < l_tile_comp->x1*l_tile_comp->y1; cout++)
+				{
+					fprintf(dwtoutput, "%d\n", *dataptr);
+					dataptr++;
+				}
+				fprintf(dwtoutput, "\n\n\n");
+
                 ++l_tile_comp;
                 ++l_tccp;
         }
 
+		fclose(dwtoutput);
         return OPJ_TRUE;
 }
 
