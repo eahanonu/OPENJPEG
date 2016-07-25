@@ -1408,8 +1408,14 @@ OPJ_BOOL opj_t1_decode_cblks(opj_t1_t* t1,
 						{
 							for (i = 0; i < cblk_w; ++i)
 							{
+								//tmp = *datap;
 								tmp = (OPJ_FLOAT32) *datap * band->stepsize;
 								//tmp = (OPJ_FLOAT32)*datap * band->stepsize - coeffmean;
+								//tmp = tmp / 2.0;
+
+								//tmp = (OPJ_FLOAT32)*datap * (band->stepsize / 2.0);
+								//tmp = (OPJ_FLOAT32)tmp / (pow(2, 5));
+								//datap++;
 								//This is if you want to print out the wavelet coefficients
 								if (DATA_OUTPUT && WAVELET_OUTPUT)
 								{
@@ -1625,8 +1631,6 @@ OPJ_BOOL opj_t1_encode_cblks(opj_t1_t *t1,
 						}
 						
 
-
-
 						opj_t1_encode_cblk(
 							t1,
 							cblk,
@@ -1669,8 +1673,18 @@ OPJ_BOOL opj_t1_encode_cblks(opj_t1_t *t1,
 							{
 								for (i = 0; i < cblk_w; ++i)
 								{
-									tmp2 = (OPJ_FLOAT32)tiledp[(j * tile_w) + i] * (band->stepsize / 2.0);
-									tmp2 = (OPJ_FLOAT32)tmp2 / (pow(2, 5));  //coefficient as seen at decoder
+									//tmp2 = (OPJ_FLOAT32)tiledp[(j * tile_w) + i] * (band->stepsize / 2.0);
+									//tmp2 = (OPJ_FLOAT32)tmp2 / (pow(2, 5));  //coefficient as seen at decoder
+									//tmp2 = (OPJ_FLOAT32)tiledp[(j * tile_w) + i];
+									//tmp2 = (OPJ_FLOAT32) datap[(j * cblk_w) + i];
+									
+									//tmp2 = (OPJ_FLOAT32) *datap / (pow(2,5));
+									//tmp2 = (OPJ_FLOAT32) tmp2 * (band->stepsize / 2.0);
+									
+									tmp2 = (OPJ_FLOAT32)tiledp[(j * tile_w) + i] / 8192.0;
+
+									//tmp2 = (OPJ_FLOAT32) tmp2 / (pow(2, 5));
+									datap++;
 
 									//This is if you want to print out the wavelet coefficients
 									if (DATA_OUTPUT && WAVELET_OUTPUT)
