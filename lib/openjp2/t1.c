@@ -1402,14 +1402,17 @@ OPJ_BOOL opj_t1_decode_cblks(opj_t1_t* t1,
 
 						//Calculate codeblock variance
 						datap = t1->data;  //point datap back to beginning of the data
+						tiledp = (OPJ_FLOAT32*)&tilec->data[(OPJ_UINT32)y * tile_w + (OPJ_UINT32)x];
 						OPJ_FLOAT32 varsum = 0.0, tmp;
 						OPJ_FLOAT32 coeffmean = (OPJ_FLOAT32)coeffsum / (cblk_h*cblk_w);  //codeblock mean
+						OPJ_FLOAT32 q_Coeff, uq_Coeff;
+
 						for (j = 0; j < cblk_h; ++j)
 						{
 							for (i = 0; i < cblk_w; ++i)
 							{
 								//tmp = *datap;
-								tmp = (OPJ_FLOAT32) *datap * band->stepsize;
+								//tmp = (OPJ_FLOAT32) *datap * band->stepsize;
 								//tmp = (OPJ_FLOAT32)*datap * band->stepsize - coeffmean;
 								//tmp = tmp / 2.0;
 
@@ -1417,13 +1420,18 @@ OPJ_BOOL opj_t1_decode_cblks(opj_t1_t* t1,
 								//tmp = (OPJ_FLOAT32)tmp / (pow(2, 5));
 								//datap++;
 								//This is if you want to print out the wavelet coefficients
+								
+								uq_Coeff = (OPJ_FLOAT32)tiledp[(j * tile_w) + i] / 8192.0;
+								q_Coeff = (OPJ_FLOAT32)datap[(j * cblk_w) + i] / 8192.0;
+								OPJ_FLOAT32 tmp = uq_Coeff;
+
 								if (DATA_OUTPUT && WAVELET_OUTPUT)
 								{
-									fprintf(decoder_info_file, "C%f\n", tmp);
+									fprintf(decoder_info_file, "C%f\t%f\n", uq_Coeff, q_Coeff);
 								}
 								tmp = tmp - coeffmean;
 								varsum = varsum + tmp * tmp;
-								datap++;
+								//datap++;
 							}
 						}
 						fprintf(decoder_info_file, "%f\n\n", (OPJ_FLOAT32)varsum / (cblk_h*cblk_w - 1));
@@ -1667,29 +1675,23 @@ OPJ_BOOL opj_t1_encode_cblks(opj_t1_t *t1,
 							datap = t1->data;  //point datap back to beginning of the data
 							OPJ_FLOAT32 varsum = 0.0;
 							OPJ_FLOAT32 coeffmean = (OPJ_FLOAT32)coeffsum / (cblk_h*cblk_w);  //codeblock mean
+							OPJ_FLOAT32 uq_Coeff, q_Coeff;
 
 							//int *tmp3 = tiledp;
 							for (j = 0; j < cblk_h; ++j)
 							{
 								for (i = 0; i < cblk_w; ++i)
 								{
-									//tmp2 = (OPJ_FLOAT32)tiledp[(j * tile_w) + i] * (band->stepsize / 2.0);
-									//tmp2 = (OPJ_FLOAT32)tmp2 / (pow(2, 5));  //coefficient as seen at decoder
-									//tmp2 = (OPJ_FLOAT32)tiledp[(j * tile_w) + i];
-									//tmp2 = (OPJ_FLOAT32) datap[(j * cblk_w) + i];
 									
-									//tmp2 = (OPJ_FLOAT32) *datap / (pow(2,5));
-									//tmp2 = (OPJ_FLOAT32) tmp2 * (band->stepsize / 2.0);
-									
-									tmp2 = (OPJ_FLOAT32)tiledp[(j * tile_w) + i] / 8192.0;
+									uq_Coeff = (OPJ_FLOAT32)tiledp[(j * tile_w) + i] / 8192.0;
+									q_Coeff = (OPJ_FLOAT32)datap[(j * cblk_w) + i] / 8192.0;
 
-									//tmp2 = (OPJ_FLOAT32) tmp2 / (pow(2, 5));
-									datap++;
+									//datap++;
 
 									//This is if you want to print out the wavelet coefficients
 									if (DATA_OUTPUT && WAVELET_OUTPUT)
 									{
-										fprintf(encoder_info_file, "C%f\n", tmp2);
+										fprintf(encoder_info_file, "C%f\t%f\n", uq_Coeff, q_Coeff);
 									}
 
 									tmp2 = tmp2 - coeffmean;
