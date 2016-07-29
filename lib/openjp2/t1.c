@@ -1814,8 +1814,8 @@ OPJ_BOOL opj_t1_encode_cblks(opj_t1_t *t1,
 								for (i = 0; i < cblk_w; ++i)
 								{
 									
-									uq_Coeff = (OPJ_FLOAT32)tiledp[(j * tile_w) + i] / 8192.0;
-									q_Coeff = (OPJ_FLOAT32)datap[(j * cblk_w) + i] / 8192.0;
+									uq_Coeff = (OPJ_FLOAT32) tiledp[(j * tile_w) + i] / 8192.0;
+									q_Coeff = (OPJ_FLOAT32) datap[(j * cblk_w) + i] / 8192.0;
 
 									//datap++;
 

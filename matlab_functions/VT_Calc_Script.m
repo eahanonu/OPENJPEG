@@ -1,7 +1,7 @@
-
+exdir = '../../build/src/bin/jp2/';
 %Get the codeblock info
-[encdata, enccoeffs, ~] = codeblockinfo('../encoderdata.dat');
-[decdata, deccoeffs, decsteps] = codeblockinfo('../decoderdata.dat');
+[encdata, enccoeffs, ~] = codeblockinfo([exdir 'encoderdata.dat']);
+[decdata, deccoeffs, decsteps] = codeblockinfo([exdir 'decoderdata.dat']);
 encdata(:,14:15) = nan(size(encdata,1),2);
 decdata(:,14:15) = nan(size(encdata,1),2);
 coefvt = cell(length(decsteps),1);
@@ -41,7 +41,8 @@ var_err = abs((encdata(:,12) - decdata(:,12))./encdata(:,12))*100;
 vtdata = [encdata(:,12), decdata(:,12),var_err, encdata(:,13), decdata(:,13)];
 
 %Want to go through and put the wavelet decomposition map together
-img = imread('../tif_input.tif');
+img = imread([exdir 'tif_input.tif']);
+imgdec = imread([exdir 'tif_output.tif']);
 imgd = size(img);
 wavdec_q = nan(imgd(1),imgd(2),3);
 wavdec_uq = wavdec_q;
@@ -49,6 +50,7 @@ wavenc_q = wavdec_q;
 wavenc_uq = wavdec_q;
 wavdecVT = nan(size(wavdec_q));
 wavencVT = nan(size(wavenc_q));
+varinfo = nan(size(wavenc_q));
 csp = nan(size(wavenc_q));
 waverr = wavenc_q;
 for comp = 0:2
@@ -69,7 +71,7 @@ for comp = 0:2
         %wavdecVT(t1(n0,5)+1:t1(n0,5)+t1(n0,9),t1(n0,4)+1:t1(n0,4)+t1(n0,8),comp+1) = t1(n0,13)*ones(size(t2{n0}));
         %wavencVT(t3(n0,5)+1:t3(n0,5)+t3(n0,9),t3(n0,4)+1:t3(n0,4)+t3(n0,8),comp+1) = t3(n0,13)*ones(size(t4{n0}));
         wavdecVT(t1(n0,5)+1:t1(n0,5)+t1(n0,9),t1(n0,4)+1:t1(n0,4)+t1(n0,8),comp+1) = coefs{n0};
-        
+        varinfo(t1(n0,5)+1:t1(n0,5)+t1(n0,9),t1(n0,4)+1:t1(n0,4)+t1(n0,8),comp+1) = t3(n0,13)*ones(size(t4{n0,1}));
         %np = 0:t1(n0,11)/2:ceil(max(abs(t2{n0}(:))));
         %qs = t1(n0,11)/4;
         %np = [0, 1.5*qs:qs:ceil(max(abs(t2{n0}(:))))];
@@ -83,19 +85,19 @@ for comp = 0:2
 end
 
 
-% VT_Calc_Plotting_Script
-% img2 = imread('../tif_output.tif');
-% [cMat, qMap] = spatial_quality(waverr(:,:,1),6);
- [cMat2, qMap2] = spatial_quality(wavdecVT(:,:,1),6);
-% figure
-% subplot(1,2,1)
-% imshow(img)
-% subplot(1,2,2)
-% imagesc(qMap)
-% colorbar
-% axis image
-% axis off
+%Make some plots
+figure
+imshowpair(img,imgdec,'montage')
 
-
+[~, qMap] = spatial_quality(wavdecVT(:,:,1),6);
+figure
+subplot(1,2,1)
+imagesc(wavdecVT(:,:,1))
+axis image
+colorbar
+subplot(1,2,2)
+imagesc(qMap);
+axis image
+colorbar
 
 

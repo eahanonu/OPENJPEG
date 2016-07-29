@@ -39,6 +39,7 @@ for x0 = xp:size(dmat,2)
         %Q = nanmean(cMat(n0,:));
         tmp = cMat(n0,~isnan(cMat(n0,:))); 
         Q = (sum(tmp.^4)/16).^(1/4);  %Minkowski, p=4
+        %Q = mean(tmp);
         %Q = max(tmp);
         qc = 2*(x0-xp)+1;
         qr = 2*y0-1;
