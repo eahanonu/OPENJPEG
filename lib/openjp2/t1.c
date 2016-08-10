@@ -372,7 +372,8 @@ void opj_t1_enc_sigpass_step(opj_t1_t *t1,
 	OPJ_INT32 one,
 	OPJ_INT32 *nmsedec,
 	OPJ_BYTE type,
-	OPJ_UINT32 vsc
+	OPJ_UINT32 vsc,
+	OPJ_INT32 *tempdec
 )
 {
 	OPJ_INT32 v;
@@ -393,6 +394,7 @@ void opj_t1_enc_sigpass_step(opj_t1_t *t1,
 		if (v) {
 			v = *datap < 0 ? 1 : 0;
 			*nmsedec += opj_t1_getnmsedec_sig((OPJ_UINT32)opj_int_abs(*datap), (OPJ_UINT32)(bpno + T1_NMSEDEC_FRACBITS));
+			*tempdec = opj_t1_getnmsedec_sig((OPJ_UINT32)opj_int_abs(*datap), (OPJ_UINT32)(bpno + T1_NMSEDEC_FRACBITS));
 			opj_mqc_setcurctx(mqc, opj_t1_getctxno_sc(flag));	/* ESSAI */
 			if (type == T1_TYPE_RAW) {	/* BYPASS/LAZY MODE */
 				opj_mqc_bypass_enc(mqc, (OPJ_UINT32)v);
@@ -489,7 +491,8 @@ void opj_t1_enc_sigpass(opj_t1_t *t1,
 	OPJ_UINT32 orient,
 	OPJ_INT32 *nmsedec,
 	OPJ_BYTE type,
-	OPJ_UINT32 cblksty
+	OPJ_UINT32 cblksty,
+	OPJ_INT32 *distmat
 )
 {
 	OPJ_UINT32 i, j, k, vsc;
@@ -502,6 +505,7 @@ void opj_t1_enc_sigpass(opj_t1_t *t1,
 			for (j = k; j < k + 4 && j < t1->h; ++j) {
 				vsc = ((cblksty & J2K_CCP_CBLKSTY_VSC) && (j == k + 3 || j == t1->h - 1)) ? 1 : 0;
 
+				OPJ_INT32 tempdec = 0;
 				opj_t1_enc_sigpass_step(
 					t1,
 					&t1->flags[((j + 1) * t1->flags_stride) + i + 1],
@@ -511,10 +515,14 @@ void opj_t1_enc_sigpass(opj_t1_t *t1,
 					one,
 					nmsedec,
 					type,
-					vsc);
+					vsc,
+					&tempdec);
+
+				distmat[(j * t1->w) + i] += tempdec;
 			}
 		}
 	}
+
 }
 
 void opj_t1_dec_sigpass_raw(
@@ -640,7 +648,8 @@ void opj_t1_enc_refpass_step(opj_t1_t *t1,
 	OPJ_INT32 one,
 	OPJ_INT32 *nmsedec,
 	OPJ_BYTE type,
-	OPJ_UINT32 vsc)
+	OPJ_UINT32 vsc,
+	OPJ_INT32 *tempdec)
 {
 	OPJ_INT32 v;
 	OPJ_UINT32 flag;
@@ -650,6 +659,7 @@ void opj_t1_enc_refpass_step(opj_t1_t *t1,
 	flag = vsc ? (OPJ_UINT32)((*flagsp) & (~(T1_SIG_S | T1_SIG_SE | T1_SIG_SW | T1_SGN_S))) : (OPJ_UINT32)(*flagsp);
 	if ((flag & (T1_SIG | T1_VISIT)) == T1_SIG) {
 		*nmsedec += opj_t1_getnmsedec_ref((OPJ_UINT32)opj_int_abs(*datap), (OPJ_UINT32)(bpno + T1_NMSEDEC_FRACBITS));
+		*tempdec = opj_t1_getnmsedec_ref((OPJ_UINT32)opj_int_abs(*datap), (OPJ_UINT32)(bpno + T1_NMSEDEC_FRACBITS));
 		v = opj_int_abs(*datap) & one ? 1 : 0;
 		opj_mqc_setcurctx(mqc, opj_t1_getctxno_mag(flag));	/* ESSAI */
 		if (type == T1_TYPE_RAW) {	/* BYPASS/LAZY MODE */
@@ -734,7 +744,8 @@ void opj_t1_enc_refpass(
 	OPJ_INT32 bpno,
 	OPJ_INT32 *nmsedec,
 	OPJ_BYTE type,
-	OPJ_UINT32 cblksty)
+	OPJ_UINT32 cblksty,
+	OPJ_INT32 *distmat)
 {
 	OPJ_UINT32 i, j, k, vsc;
 	OPJ_INT32 one;
@@ -745,6 +756,8 @@ void opj_t1_enc_refpass(
 		for (i = 0; i < t1->w; ++i) {
 			for (j = k; j < k + 4 && j < t1->h; ++j) {
 				vsc = ((cblksty & J2K_CCP_CBLKSTY_VSC) && (j == k + 3 || j == t1->h - 1)) ? 1 : 0;
+
+				OPJ_INT32 tempdec = 0;
 				opj_t1_enc_refpass_step(
 					t1,
 					&t1->flags[((j + 1) * t1->flags_stride) + i + 1],
@@ -753,7 +766,10 @@ void opj_t1_enc_refpass(
 					one,
 					nmsedec,
 					type,
-					vsc);
+					vsc,
+					&tempdec);
+
+				distmat[(j * t1->w) + i] += tempdec;
 			}
 		}
 	}
@@ -880,7 +896,8 @@ void opj_t1_enc_clnpass_step(
 	OPJ_INT32 one,
 	OPJ_INT32 *nmsedec,
 	OPJ_UINT32 partial,
-	OPJ_UINT32 vsc)
+	OPJ_UINT32 vsc,
+	OPJ_INT32 *tempdec)
 {
 	OPJ_INT32 v;
 	OPJ_UINT32 flag;
@@ -898,6 +915,7 @@ void opj_t1_enc_clnpass_step(
 		if (v) {
 		LABEL_PARTIAL:
 			*nmsedec += opj_t1_getnmsedec_sig((OPJ_UINT32)opj_int_abs(*datap), (OPJ_UINT32)(bpno + T1_NMSEDEC_FRACBITS));
+			*tempdec = opj_t1_getnmsedec_sig((OPJ_UINT32)opj_int_abs(*datap), (OPJ_UINT32)(bpno + T1_NMSEDEC_FRACBITS));
 			opj_mqc_setcurctx(mqc, opj_t1_getctxno_sc(flag));
 			v = *datap < 0 ? 1 : 0;
 			opj_mqc_encode(mqc, (OPJ_UINT32)(v ^ opj_t1_getspb((OPJ_UINT32)flag)));
@@ -986,7 +1004,8 @@ void opj_t1_enc_clnpass(
 	OPJ_INT32 bpno,
 	OPJ_UINT32 orient,
 	OPJ_INT32 *nmsedec,
-	OPJ_UINT32 cblksty)
+	OPJ_UINT32 cblksty,
+	OPJ_INT32 *distmat)
 {
 	OPJ_UINT32 i, j, k;
 	OPJ_INT32 one;
@@ -1035,6 +1054,8 @@ void opj_t1_enc_clnpass(
 			}
 			for (j = k + runlen; j < k + 4 && j < t1->h; ++j) {
 				vsc = ((cblksty & J2K_CCP_CBLKSTY_VSC) && (j == k + 3 || j == t1->h - 1)) ? 1 : 0;
+
+				OPJ_INT32 tempdec = 0;
 				opj_t1_enc_clnpass_step(
 					t1,
 					&t1->flags[((j + 1) * t1->flags_stride) + i + 1],
@@ -1044,10 +1065,14 @@ void opj_t1_enc_clnpass(
 					one,
 					nmsedec,
 					agg && (j == k + runlen),
-					vsc);
+					vsc,
+					&tempdec);
+
+				distmat[(j * t1->w) + i] += tempdec;
 			}
 		}
 	}
+
 }
 
 static void opj_t1_dec_clnpass(
@@ -1438,7 +1463,8 @@ OPJ_BOOL opj_t1_decode_cblks(opj_t1_t* t1,
 						fprintf(decoder_info_file, "%d %d\n", x, y);
 						fprintf(decoder_info_file, "%d %d\n", cblk->x0, cblk->y0);
 						fprintf(decoder_info_file, "%d %d\n", cblk_w, cblk_h);
-						int decodedplanes = (cblk->segs->real_num_passes + 2) / 3;  //Number of bitplanes fully decoded
+						//int decodedplanes = (cblk->segs->real_num_passes + 2) / 3;  //Number of bitplanes fully decoded
+						//fprintf(decoder_info_file, "%d\n", cblk->segs->real_num_passes);
 						fprintf(decoder_info_file, "%d\n", cblk->numbps);
 						//float cblkstep = 0.0;
 						//cblkstep = band->stepsize * pow(2.0, (double)cblk->numbps - decodedpla);
@@ -1514,7 +1540,7 @@ OPJ_BOOL opj_t1_decode_cblks(opj_t1_t* t1,
 
 								if (DATA_OUTPUT && WAVELET_OUTPUT)
 								{
-									fprintf(decoder_info_file, "C%f\t%f\t%d\n", uq_Coeff, q_Coeff, nbp);
+									fprintf(decoder_info_file, "C%f\t%f\t%d\n", uq_Coeff, q_Coeff*32.0, nbp);
 								}
 								tmp = tmp - coeffmean;
 								varsum = varsum + tmp * tmp;
@@ -1613,6 +1639,10 @@ OPJ_BOOL opj_t1_decode_cblk(opj_t1_t *t1,
 				{
 					finalpass = 2; //sig and ref pass
 				}
+				else if (passno % 3u == 0)
+				{
+					finalpass = 3; //sig, ref, and cln pass
+				}
 			}
 
 			//copy last coding info
@@ -1669,13 +1699,23 @@ OPJ_BOOL opj_t1_decode_cblk(opj_t1_t *t1,
 
 		}
 
-		if (finalpass == 2)
+		if (finalpass == 2) //sig and ref
 		{
 			for (int i = 0; i < t1->h; i++)
 			{
 				for (int j = 0; j < t1->w; j++)
 				{
 					cbbp[i][j] = cbbp[i][j] || cbbp_last[i][j];
+				}
+			}
+		}
+		else if (finalpass == 3)  //sig, ref, and cln
+		{
+			for (int i = 0; i < t1->h; i++)
+			{
+				for (int j = 0; j < t1->w; j++)
+				{
+					cbbp[i][j] = 1;
 				}
 			}
 		}
@@ -1779,7 +1819,10 @@ OPJ_BOOL opj_t1_encode_cblks(opj_t1_t *t1,
 							}
 						}
 						
-						
+						//Used for outputting coefficient distortions
+						OPJ_INT32 *distmat;
+						distmat = (OPJ_INT32*)calloc(t1->w * t1->h, sizeof(OPJ_INT32));
+
 						opj_t1_encode_cblk(
 							t1,
 							cblk,
@@ -1792,7 +1835,8 @@ OPJ_BOOL opj_t1_encode_cblks(opj_t1_t *t1,
 							tile->numcomps,
 							tile,
 							mct_norms,
-							encoder_info_file);
+							encoder_info_file,
+							distmat);
 
 						
 						//printf("\n%d", cblk->passes->distortiondec);
@@ -1812,7 +1856,8 @@ OPJ_BOOL opj_t1_encode_cblks(opj_t1_t *t1,
 							fprintf(encoder_info_file, "%d %d\n", cblk->x0, cblk->y0);
 							fprintf(encoder_info_file, "%d %d\n", cblk_w, cblk_h);
 							//fprintf(encoder_info_file, "%d\n", (int)(cblk->segs->real_num_passes + 2) / 3);
-							fprintf(encoder_info_file, "%d\n", cblk->numbps);
+							//fprintf(encoder_info_file, "%d\n", cblk->numbps);
+							fprintf(encoder_info_file, "%d\n", cblk->totalpasses);
 							//fprintf(encoder_info_file, "%f\n", (float)band->stepsize / 2.0);
 							fprintf(encoder_info_file, "%f\n", cblk->passes->distortiondec);  //Codeblock distortion (based off lookup table)
 
@@ -1840,13 +1885,14 @@ OPJ_BOOL opj_t1_encode_cblks(opj_t1_t *t1,
 									//This is if you want to print out the wavelet coefficients
 									if (DATA_OUTPUT && WAVELET_OUTPUT)
 									{
-										fprintf(encoder_info_file, "C%f\t%f\t%d\n", uq_Coeff, q_Coeff, 0);
+										fprintf(encoder_info_file, "C%f\t%f\t%d\n", uq_Coeff, q_Coeff, distmat[(j * t1->w) + i]);
 									}
 
 									tmp2 = tmp2 - coeffmean;
 									varsum = varsum + tmp2 * tmp2;
 								}
 							}
+							free(distmat);
 							fprintf(encoder_info_file, "%f\n\n", (OPJ_FLOAT32)varsum / (cblk_h*cblk_w - 1));
 						}
 
@@ -1855,6 +1901,7 @@ OPJ_BOOL opj_t1_encode_cblks(opj_t1_t *t1,
 			} /* bandno */
 		} /* resno  */
 	} /* compno  */
+
 
 	if (DATA_OUTPUT) {fclose(encoder_info_file);}
 	//getchar();
@@ -1873,7 +1920,8 @@ void opj_t1_encode_cblk(opj_t1_t *t1,
 	OPJ_UINT32 numcomps,
 	opj_tcd_tile_t * tile,
 	const OPJ_FLOAT64 * mct_norms,
-	FILE *encfile)
+	FILE *encfile,
+	OPJ_INT32 *distmat)
 {
 	OPJ_FLOAT64 cumwmsedec = 0.0;
 
@@ -1905,27 +1953,44 @@ void opj_t1_encode_cblk(opj_t1_t *t1,
 	opj_mqc_setstate(mqc, T1_CTXNO_ZC, 0, 4);
 	opj_mqc_init_enc(mqc, cblk->data);
 
+	if (DATA_OUTPUT)
+	{
+		fprintf(encfile, "D");
+	}
+
+
+
 	for (passno = 0; bpno >= 0; ++passno)
 	{
 		opj_tcd_pass_t *pass = &cblk->passes[passno];
 		OPJ_UINT32 correction = 3;
 		type = ((bpno < ((OPJ_INT32)(cblk->numbps) - 4)) && (passtype < 2) && (cblksty & J2K_CCP_CBLKSTY_LAZY)) ? T1_TYPE_RAW : T1_TYPE_MQ;
 
+
+		OPJ_INT32 *tmpdistmat;
+		tmpdistmat = (OPJ_INT32*)calloc(t1->w * t1->h, sizeof(OPJ_INT32));
+
 		switch (passtype) 
 		{
 		case 0:
-			opj_t1_enc_sigpass(t1, bpno, orient, &nmsedec, type, cblksty);
+			opj_t1_enc_sigpass(t1, bpno, orient, &nmsedec, type, cblksty, tmpdistmat);
 			break;
 		case 1:
-			opj_t1_enc_refpass(t1, bpno, &nmsedec, type, cblksty);
+			opj_t1_enc_refpass(t1, bpno, &nmsedec, type, cblksty, tmpdistmat);
 			break;
 		case 2:
-			opj_t1_enc_clnpass(t1, bpno, orient, &nmsedec, cblksty);
+			opj_t1_enc_clnpass(t1, bpno, orient, &nmsedec, cblksty, tmpdistmat);
 			/* code switch SEGMARK (i.e. SEGSYM) */
 			if (cblksty & J2K_CCP_CBLKSTY_SEGSYM)
 				opj_mqc_segmark_enc(mqc);
 			break;
 		}
+
+		for (int ii = 0; ii < t1->w * t1->h; ii++)
+		{
+			distmat[ii] += opj_t1_getwmsedec(tmpdistmat[ii], compno, level, orient, bpno, qmfbid, stepsize, numcomps, mct_norms);
+		}
+		free(tmpdistmat);
 
 		/* fixed_quality */
 		tempwmsedec = opj_t1_getwmsedec(nmsedec, compno, level, orient, bpno, qmfbid, stepsize, numcomps, mct_norms);
