@@ -21,6 +21,12 @@ F1 = textscan(p1,'%s','delimiter','\n');
 F1 = F1{1};
 fclose(p1);
 
+if length(F1{1}) > 10
+    disto = strsplit(F1{1}(1:end-1), ' ');
+    disto = cellfun(@(x) str2double(x), disto);
+    F1(1) = [];
+end
+    
 cblkdata = NaN(50000,13);
 %ln = fgetl(p1);
 temp = cell(1,7);
@@ -58,8 +64,12 @@ while n0 < length(F1)
             bps = str2double(temp(5));
             bss = str2double(temp(6));
             cbsteps = temp2(3:3:end);
+            
             cbsteps = bss * (2 .^ (bps - cbsteps));
             cbstep{n2} = reshape(cbsteps,cblkdims).';
+            
+            %cbstep{n2} = reshape((bps-cbsteps)/bps,cblkdims).';
+            
             coeffmats{n2,1} = reshape(uqc,cblkdims).'; %C is row major MATLAB is column major
             coeffmats{n2,2} = reshape(qc,cblkdims).';
             %coeffmats{n2} = temp2.';

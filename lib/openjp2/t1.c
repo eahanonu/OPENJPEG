@@ -279,7 +279,8 @@ static void opj_t1_encode_cblk(opj_t1_t *t1,
 	OPJ_UINT32 cblksty,
 	OPJ_UINT32 numcomps,
 	opj_tcd_tile_t * tile,
-	const OPJ_FLOAT64 * mct_norms);
+	const OPJ_FLOAT64 * mct_norms,
+	FILE *encfile);
 
 /**
 Decode 1 code-block
@@ -403,6 +404,7 @@ void opj_t1_enc_sigpass_step(opj_t1_t *t1,
 		}
 		*flagsp |= T1_VISIT;
 	}
+
 }
 
 
@@ -499,6 +501,7 @@ void opj_t1_enc_sigpass(opj_t1_t *t1,
 		for (i = 0; i < t1->w; ++i) {
 			for (j = k; j < k + 4 && j < t1->h; ++j) {
 				vsc = ((cblksty & J2K_CCP_CBLKSTY_VSC) && (j == k + 3 || j == t1->h - 1)) ? 1 : 0;
+
 				opj_t1_enc_sigpass_step(
 					t1,
 					&t1->flags[((j + 1) * t1->flags_stride) + i + 1],
@@ -1458,6 +1461,7 @@ OPJ_BOOL opj_t1_decode_cblks(opj_t1_t* t1,
 						for (j = 0; j < cblk_h; ++j) {
 							OPJ_FLOAT32* restrict tiledp2 = tiledp;
 							for (i = 0; i < cblk_w; ++i) {
+								//printf("\n%d", *datap);
 								OPJ_FLOAT32 tmp = (OPJ_FLOAT32)*datap * band->stepsize;
 								*tiledp2 = tmp;
 								datap++;
@@ -1498,8 +1502,14 @@ OPJ_BOOL opj_t1_decode_cblks(opj_t1_t* t1,
 								}
 									
 
-								uq_Coeff = (OPJ_FLOAT32)tiledp[(j * tile_w) + i] / 8192.0;
-								q_Coeff = (OPJ_FLOAT32)datap[(j * cblk_w) + i] / 8192.0;
+								//uq_Coeff = (OPJ_FLOAT32)tiledp[(j * tile_w) + i] / 8192.0;
+								//q_Coeff = (OPJ_FLOAT32)datap[(j * cblk_w) + i] / 8192.0;
+
+								//	uq_Coeff = (OPJ_FLOAT32)tiledp[(j * tile_w) + i];
+								uq_Coeff = (OPJ_FLOAT32)*datap * (band->stepsize / 2.0);
+								q_Coeff = (OPJ_FLOAT32)datap[(j * cblk_w) + i];
+
+
 								OPJ_FLOAT32 tmp = uq_Coeff;
 
 								if (DATA_OUTPUT && WAVELET_OUTPUT)
@@ -1769,7 +1779,7 @@ OPJ_BOOL opj_t1_encode_cblks(opj_t1_t *t1,
 							}
 						}
 						
-
+						
 						opj_t1_encode_cblk(
 							t1,
 							cblk,
@@ -1781,9 +1791,11 @@ OPJ_BOOL opj_t1_encode_cblks(opj_t1_t *t1,
 							tccp->cblksty,
 							tile->numcomps,
 							tile,
-							mct_norms);
+							mct_norms,
+							encoder_info_file);
 
-
+						
+						//printf("\n%d", cblk->passes->distortiondec);
 						////    Eze codeblock information output,  06.04.2016    ////
 						//Want to output the following codeblock information here:
 						//-resolution
@@ -1801,7 +1813,9 @@ OPJ_BOOL opj_t1_encode_cblks(opj_t1_t *t1,
 							fprintf(encoder_info_file, "%d %d\n", cblk_w, cblk_h);
 							//fprintf(encoder_info_file, "%d\n", (int)(cblk->segs->real_num_passes + 2) / 3);
 							fprintf(encoder_info_file, "%d\n", cblk->numbps);
-							fprintf(encoder_info_file, "%f\n", (float)band->stepsize / 2.0);
+							//fprintf(encoder_info_file, "%f\n", (float)band->stepsize / 2.0);
+							fprintf(encoder_info_file, "%f\n", cblk->passes->distortiondec);  //Codeblock distortion (based off lookup table)
+
 							//Calculate codeblock variance
 							datap = t1->data;  //point datap back to beginning of the data
 							OPJ_FLOAT32 varsum = 0.0;
@@ -1814,8 +1828,12 @@ OPJ_BOOL opj_t1_encode_cblks(opj_t1_t *t1,
 								for (i = 0; i < cblk_w; ++i)
 								{
 									
-									uq_Coeff = (OPJ_FLOAT32) tiledp[(j * tile_w) + i] / 8192.0;
-									q_Coeff = (OPJ_FLOAT32) datap[(j * cblk_w) + i] / 8192.0;
+									//uq_Coeff = (OPJ_FLOAT32) tiledp[(j * tile_w) + i] / 8192.0;  //Unquantized coefficient
+									//q_Coeff = (OPJ_FLOAT32) datap[(j * cblk_w) + i] / 8192.0;  //Quantized coefficient
+
+
+									uq_Coeff = (OPJ_FLOAT32)tiledp[(j * tile_w) + i];  //Unquantized coefficient
+									q_Coeff = (OPJ_FLOAT32)datap[(j * cblk_w) + i];  //Quantized coefficient
 
 									//datap++;
 
@@ -1839,6 +1857,7 @@ OPJ_BOOL opj_t1_encode_cblks(opj_t1_t *t1,
 	} /* compno  */
 
 	if (DATA_OUTPUT) {fclose(encoder_info_file);}
+	//getchar();
 	return OPJ_TRUE;
 }
 
@@ -1853,7 +1872,8 @@ void opj_t1_encode_cblk(opj_t1_t *t1,
 	OPJ_UINT32 cblksty,
 	OPJ_UINT32 numcomps,
 	opj_tcd_tile_t * tile,
-	const OPJ_FLOAT64 * mct_norms)
+	const OPJ_FLOAT64 * mct_norms,
+	FILE *encfile)
 {
 	OPJ_FLOAT64 cumwmsedec = 0.0;
 
@@ -1885,12 +1905,14 @@ void opj_t1_encode_cblk(opj_t1_t *t1,
 	opj_mqc_setstate(mqc, T1_CTXNO_ZC, 0, 4);
 	opj_mqc_init_enc(mqc, cblk->data);
 
-	for (passno = 0; bpno >= 0; ++passno) {
+	for (passno = 0; bpno >= 0; ++passno)
+	{
 		opj_tcd_pass_t *pass = &cblk->passes[passno];
 		OPJ_UINT32 correction = 3;
 		type = ((bpno < ((OPJ_INT32)(cblk->numbps) - 4)) && (passtype < 2) && (cblksty & J2K_CCP_CBLKSTY_LAZY)) ? T1_TYPE_RAW : T1_TYPE_MQ;
 
-		switch (passtype) {
+		switch (passtype) 
+		{
 		case 0:
 			opj_t1_enc_sigpass(t1, bpno, orient, &nmsedec, type, cblksty);
 			break;
@@ -1908,8 +1930,19 @@ void opj_t1_encode_cblk(opj_t1_t *t1,
 		/* fixed_quality */
 		tempwmsedec = opj_t1_getwmsedec(nmsedec, compno, level, orient, bpno, qmfbid, stepsize, numcomps, mct_norms);
 		cumwmsedec += tempwmsedec;
+
 		tile->distotile += tempwmsedec;
 
+		//PRINT PASS DISTORTION TO FILE (Eze 8.9.2016)
+		if (DATA_OUTPUT)
+		{
+			fprintf(encfile, "%f ", cumwmsedec);
+
+			if (bpno == 0 && passtype == 2)
+			{
+				fprintf(encfile, "\n");
+			}
+		}
 		/* Code switch "RESTART" (i.e. TERMALL) */
 		if ((cblksty & J2K_CCP_CBLKSTY_TERMALL) && !((passtype == 2) && (bpno - 1 < 0))) {
 			if (type == T1_TYPE_RAW) {
@@ -1963,6 +1996,7 @@ void opj_t1_encode_cblk(opj_t1_t *t1,
 			opj_mqc_reset_enc(mqc);
 	}
 
+
 	/* Code switch "ERTERM" (i.e. PTERM) */
 	if (cblksty & J2K_CCP_CBLKSTY_PTERM)
 		opj_mqc_erterm_enc(mqc);
@@ -1981,6 +2015,7 @@ void opj_t1_encode_cblk(opj_t1_t *t1,
 		}
 		pass->len = pass->rate - (passno == 0 ? 0 : cblk->passes[passno - 1].rate);
 	}
+
 }
 
 #if 0
