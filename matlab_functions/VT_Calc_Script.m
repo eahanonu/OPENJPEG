@@ -1,5 +1,3 @@
-%364416
-
 exdir = '../../build/src/bin/jp2/';
 %Get the codeblock info
 [encdata, enccoeffs, encdist, encdisto] = codeblockinfo([exdir 'encoderdata.dat']);
@@ -114,7 +112,7 @@ a1 = a1 / 30;
 a2 = wavdec_q(:,:,1);
 %[~, qMap] = spatial_quality(varinfo(:,:,1),6);
 % [~, qMap] = spatial_quality(100*abs(a1-a2)./abs(a1),6);
-% [~, qMap2] = spatial_quality((a1-a2).^2,6);
+[~, qMap2] = spatial_quality((a1-a2).^2,6);
 % [~, qMap3] = spatial_quality(csp(:,:,1).*wavenc_uq(:,:,1),6);
 % [~, qMap4] = spatial_quality(distinfo(:,:,1),6);
 [~, qMap5] = spatial_quality(wavencVT(:,:,1),6);
