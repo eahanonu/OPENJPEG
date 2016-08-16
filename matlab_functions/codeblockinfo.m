@@ -83,16 +83,16 @@ while n0 < length(F1)
             
             %cbstep{n2} = reshape((bps-cbsteps)/bps,cblkdims).';
             
-            coeffmats{n2,1} = reshape(uqc,cblkdims).'; %C is row major MATLAB is column major
-            coeffmats{n2,2} = reshape(qc,cblkdims).';
+            coeffmats{n2,1} = reshape(uqc,cblkdims).'/8192; %C is row major MATLAB is column major
+            coeffmats{n2,2} = reshape(qc,cblkdims).'/8192;
             %coeffmats{n2} = temp2.';
             n0 = n0 + prod(cblkdims);
             temp{n1} = [F1{n0} ' '];
         end
         temp2 = strsplit(cell2mat(temp),' ');
         cblkdata(n2,:) = cellfun(@(x) str2double(x),temp2(1:13));
-        cblkdata(n2,12) = var(coeffmats{n2,1}(:)/8192); % unquantized variance
-        cblkdata(n2,13) = var(coeffmats{n2,2}(:)/8192); % quantized variance
+        cblkdata(n2,12) = var(coeffmats{n2,1}(:)); % unquantized variance
+        cblkdata(n2,13) = var(coeffmats{n2,2}(:)); % quantized variance
         n2 = n2 + 1;
         n1 = 0;
         n0 = n0 + 1;

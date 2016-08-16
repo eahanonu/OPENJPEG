@@ -1072,7 +1072,6 @@ void opj_t1_enc_clnpass(
 			}
 		}
 	}
-
 }
 
 static void opj_t1_dec_clnpass(
